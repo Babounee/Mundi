@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+Fixes for the first issues on GitHub (#1, #2).
+
+- **A spouse is no longer a stranger, in saves you already have.** Ties added after the start (in This world →
+  Family and ties) now give their bond, approval and romance to saves made before 0.2.1 too: a spouse shows as
+  Married, a fiancé as Engaged, a best friend as a friend. It only touches people you have lived nothing with
+  yet (no bond, no approval, no romance), so a breakup or a divorce is never undone. A backup of the save is kept
+  first (save format 2).
+- **Play as keeps the job.** The first time you play someone, you start with the job the world gave them (This
+  world → their occupation), at the first rank. Before, you started with none.
+- **The AI knows what the people here are doing.** Someone whose routine puts them here is described as being at
+  work (with their job), at home or in their free time, with what comes next ("Next, from 17:00: home"), so "why
+  are you here?" gets a true answer. At most four people per scene, in the Scene focus block.
+
 ## 0.2.1 · 2026-10-28
 
 Fixes and improvements for Home mode.

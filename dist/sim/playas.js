@@ -4,6 +4,8 @@
 // (bonds, romance, approval, feelings, texts, plans, dating), diary and job. The two of you see each other the same
 // way: the bond and romance between you are mirrored each time you switch.
 import { nowAbs } from '../core/store.js';
+import { systemOn } from '../core/world.js';
+import { jobDef } from './work.js';
 import { charOf, avatarUrl, createPersona, createCharacter, usePersona, persona, personaName, personas } from '../st/bridge.js';
 import { whereNow } from './people.js';
 import { ties, normalizeHomes, LOVE_TIES, loveStatus } from './living.js';
@@ -69,6 +71,12 @@ function mirror(from, fromCard, to, toCard) {
     if (!together && i >= 0)
         to.social.partner.splice(i, 1);
 }
+// The job a person of the world has (This world → their occupation), as your job at the first rank. Before this,
+// playing as someone started with no job, even when the world had given them one.
+export function worldJobOf(g, w, avatar) {
+    const occ = g.cast[avatar]?.occupation;
+    return occ && systemOn(w, 'jobs') && jobDef(w, occ) ? { id: occ, rank: 0, shifts: 0 } : null;
+}
 /* ---------- your original character, as a person of the world ---------- */
 async function origCardOf(g, w, s) {
     if (s.origCard && g.cast[s.origCard] && charOf(s.origCard))
@@ -122,7 +130,8 @@ export async function switchTo(g, w, target) {
     delete s.persp[toKey];
     mirror(mine, fromCard, theirs, toCard);
     putIn(g, theirs);
-    g.player.job = s.jobs[toKey] ?? null;
+    // the first time you play someone you have the job the world gave them; after that, the one they had when you left
+    g.player.job = s.jobs[toKey] !== undefined ? s.jobs[toKey] : worldJobOf(g, w, toCard);
     // the household follows who you play: you live in their home; the one you were keeps theirs (and their family)
     s.homes ??= {};
     s.homes[fromKey] = { ...g.player.home };

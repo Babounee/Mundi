@@ -11,13 +11,17 @@
 import { SAVE, toast } from './store.js';
 import { ctx } from '../st/bridge.js';
 import { getWorld, career } from './world.js';
+import { backfillYourTies } from '../sim/living.js';
 /** The save format this version of Mundi writes. Raise it together with a new migration. */
-export const SCHEMA = 1;
+export const SCHEMA = 2;
 // In order. `run` gets a save at schema `to - 1` and leaves it at `to`.
 const MIGRATIONS = [
     // 1 (Mundi 0.1.x): the first versioned format. Saves from before only get the stamp; every system already fills
     // in what an older save lacks when it reads it.
     { to: 1, what: 'version stamp', run: () => { } },
+    // 2 (the version after 0.2.1): ties with you added after the start (spouse, fiancé, best friend…) now count: the person is
+    // no longer a stranger. Saves made before only had the line of text. Only people you have lived nothing with.
+    { to: 2, what: 'ties with you give their bond, approval and romance', run: g => backfillYourTies(g) },
 ];
 export const schemaOf = (g) => Number(g.schema ?? 0);
 const KEEP = 3;

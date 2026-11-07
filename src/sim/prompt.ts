@@ -24,7 +24,7 @@ import { social, livePlan } from './social.js';
 import { personaName } from '../st/bridge.js';
 import { nowAbs, type Save, type Resident } from '../core/store.js';
 import { worldLine, weatherHere } from './worldstate.js';
-import { placeMemoryLines, whyHereLines } from './daylife.js';
+import { placeMemoryLines, whyHereLines, routineLines } from './daylife.js';
 import { openNow } from './daynight.js';
 import { neighbors } from './happenings.js';
 import { sheetLine } from './rpg.js';
@@ -138,7 +138,7 @@ export function sceneBlocks(): Built[] {
         diary: diaryLines(g),
         memories: [...memoryLines(g, w, met, personaName()), ...placeMemoryLines(g, w, present)],
         plans: planLines(g, present, w),
-        focus: [eventLine(g, w), combatLine(g, w), prisonLine(g, w), ...towerLines(g, w), ...contractLines(g, w), ...institutionLines(g, w), focusLine(g, w, present), ...whyHereLines(g, w, present), ...questLines(g)],
+        focus: [eventLine(g, w), combatLine(g, w), prisonLine(g, w), ...towerLines(g, w), ...contractLines(g, w), ...institutionLines(g, w), focusLine(g, w, present), ...whyHereLines(g, w, present), ...routineLines(g, w, present), ...questLines(g)],
         feelings: [feelingLine(g, met)],
         you: [(g.player as any).bio ? `About {{user}} in this world: ${(g.player as any).bio}` : '', sheetLine(g, w), afflictionLine(g, w), ...artifactLines(g, w), partyLine(g, w), standingLine(g, w), bountyLine(g, w), tradeLine(g, w), holdingsLine(g, w), habitLine(g, w), hobbyLine(g, w), petLine(g, w), mentorLine(g, w, present.map(r => r.avatar)), physiqueLine(g), aspirationOf(g) && systemOn(w, 'goals') ? `{{user}}'s life goal: ${aspirationOf(g)!.name.toLowerCase()}.` : ''],
         solo: [soloLine(g, present)],

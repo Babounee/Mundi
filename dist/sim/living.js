@@ -291,3 +291,55 @@ export function startingStand(type) {
     const [bond, approval] = m[type] ?? [20, 0];
     return { bond, approval };
 }
+// What a tie means beyond the tie itself: with you, where you stand with them (bond, approval, met, the romance:
+// a spouse is "married", not a stranger); between two others, a couple. Used at the start and when a tie is
+// added in This world → Family and ties. It never lowers what is already there.
+export function applyTie(save, t) {
+    const other = t.a === '__you' ? t.b : t.b === '__you' ? t.a : '';
+    if (other) {
+        if (!save.cast[other])
+            return;
+        const st = startingStand(t.type);
+        const soc = (save.social ??= {});
+        soc.bond ??= {};
+        soc.bond[other] = Math.max(soc.bond[other] ?? -Infinity, st.bond);
+        const liv = (save.living ??= {});
+        liv.approval ??= {};
+        liv.approval[other] = Math.max(liv.approval[other] ?? -Infinity, st.approval);
+        save.cast[other].met = true;
+        if (LOVE_TIES.includes(t.type)) {
+            soc.partner ??= [];
+            if (!soc.partner.includes(other))
+                soc.partner.push(other);
+            const rom = (save.romance ??= {});
+            const rank = ['none', 'dating', 'engaged', 'married'];
+            const cur = rom[other], want = loveStatus(t.type);
+            if (!cur || rank.indexOf(cur.status) < rank.indexOf(want))
+                rom[other] = { ...(cur ?? {}), value: Math.max(cur?.value ?? 0, 70), status: want };
+        }
+    }
+    else if (LOVE_TIES.includes(t.type)) {
+        const liv = (save.living ??= {});
+        liv.pairs ??= [];
+        if (!liv.pairs.some((p) => p.includes(t.a) && p.includes(t.b)))
+            liv.pairs.push([t.a, t.b]);
+        if (t.type === 'spouse' || t.type === 'fiance')
+            (liv.pairInfo ??= {})[[t.a, t.b].sort().join('|')] = { since: save.day, stage: loveStatus(t.type) };
+    }
+}
+// Saves made before 0.2.1: a tie with you added later in This world → Family and ties ("married to", "best friend
+// of"…) was only a line of text, so the person still showed as a stranger (bond 0, not met, no romance). This gives
+// those ties their meaning once, and only to people you have lived nothing with yet: no bond, no approval and no
+// romance of any kind (a breakup or a divorce leaves a trace, so it is never undone). Safe to run twice.
+export function backfillYourTies(save) {
+    const soc = save.social, liv = save.living, rom = save.romance;
+    for (const t of ties(save)) {
+        const other = t.a === '__you' ? t.b : t.b === '__you' ? t.a : '';
+        if (!other || !save.cast[other])
+            continue;
+        const r = rom?.[other];
+        const untouched = !(soc?.bond?.[other]) && !(liv?.approval?.[other]) && (!r || (r.status === 'none' && !r.value));
+        if (untouched)
+            applyTie(save, t);
+    }
+}

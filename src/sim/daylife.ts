@@ -4,12 +4,12 @@
 // · Places remember you: how often you come (a regular, a first time), who works there and who comes often, and
 //   where each person last saw you.
 import { nowAbs, type Save, type Resident } from '../core/store.js';
-import { systemOn, type WorldDef } from '../core/world.js';
+import { systemOn, isScenario, type WorldDef } from '../core/world.js';
 import { onHour } from './hooks.js';
 import { isWeekend } from './time.js';
 import { isHome, placeOf, playerHomeId } from './places.js';
 import { regionOf, regionState } from './worldstate.js';
-import { presentAt } from './people.js';
+import { presentAt, routineAt, routineStep } from './people.js';
 import { isOpen } from './daynight.js';
 import { overhear } from './living.js';
 import { lex } from '../core/lexicon.js';
@@ -128,4 +128,28 @@ export function placeMemoryLines(g: Save, w: WorldDef, present: Resident[]): str
 // For the AI: why the people here are here, when it is not their routine.
 export function whyHereLines(g: Save, w: WorldDef, present: Resident[]): string[] {
     return present.map(r => { const b = breakNow(g, w, r); return b ? `${r.name} ${b.why}.` : ''; }).filter(Boolean);
+}
+
+// For the AI: what the people here are doing right now by their routine, and what comes next ("at work (Cashier),
+// then home from 17:00"). Without it, someone who is simply at work answers "why are you here?" at random.
+// Only people whose routine puts them here: an interruption, plans or someone who came along are said elsewhere.
+const ROUTINE_LINES = 4;   // a crowded place would cost too many tokens
+export function routineLines(g: Save, w: WorldDef, present: Resident[]): string[] {
+    if (!systemOn(w, 'living') || isScenario(w)) return [];
+    const loc = g.player.loc, at = nowAbs(g), h = Math.floor((at % 1440) / 60);
+    const jobs = systemOn(w, 'jobs');
+    const out: string[] = [];
+    for (const r of present) {
+        if (out.length >= ROUTINE_LINES) break;
+        if (breakNow(g, w, r, at) || routineAt(g, w, r, at) !== loc) continue;
+        const [, step] = routineStep(r, at);
+        const job = jobs ? w.occupations.find(o => o.id === r.occupation) : null;
+        const name = (t: string) => placeOf(g, w, t)?.name ?? '';
+        const label = (t: string) => t === 'work' ? (job ? `work at ${name(job.place) || 'their job'}` : 'work') : t === 'home' ? 'home' : t === 'leisure' ? 'free time' : name(t);
+        const doing = step === 'work' ? `at work${job ? ` (${job.name})` : ''}` : step === 'home' ? 'at home' : step === 'leisure' ? 'spending free time here' : `at ${name(step) || 'this place'}`;
+        const next = (isWeekend(Math.floor(at / 1440)) ? r.routine.weekend : r.routine.weekday).find(s => s[0] > h);
+        const then = next && next[1] !== step && label(next[1]) ? ` Next, from ${String(next[0]).padStart(2, '0')}:00: ${label(next[1])}.` : '';
+        out.push(`${r.name} is ${doing}, as on any usual day.${then}`);
+    }
+    return out;
 }
